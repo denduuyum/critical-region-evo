@@ -1,0 +1,264 @@
+From 97036bc1d8966116d6080ed42f0d3d77c7a939be Mon Sep 17 00:00:00 2001
+From: denduuyum <gantulgag@seas.num.edu.mn>
+Date: Fri, 10 Mar 2023 16:44:07 +0800
+Subject: [PATCH] added _K parameter for DCNP
+
+---
+ .../networkit/centrality/ApproxBetweenness.hpp  |  3 ++-
+ .../centrality/EstimateBetweenness.hpp          |  4 ++--
+ include/networkit/distance/BFS.hpp              |  4 ++--
+ networkit/centrality.pyx                        | 17 +++++++++--------
+ networkit/cpp/centrality/ApproxBetweenness.cpp  |  6 +++---
+ .../cpp/centrality/EstimateBetweenness.cpp      |  6 +++---
+ networkit/cpp/distance/BFS.cpp                  |  7 ++++---
+ networkit/distance.pyx                          | 10 ++++++----
+ 8 files changed, 31 insertions(+), 26 deletions(-)
+
+diff --git a/include/networkit/centrality/ApproxBetweenness.hpp b/include/networkit/centrality/ApproxBetweenness.hpp
+index 3bd7792e5..25cae1d99 100644
+--- a/include/networkit/centrality/ApproxBetweenness.hpp
++++ b/include/networkit/centrality/ApproxBetweenness.hpp
+@@ -19,6 +19,7 @@ namespace NetworKit {
+  * through Sampling
+  */
+ class ApproxBetweenness final : public Centrality {
++	int __k_dist;
+ 
+ public:
+     /**
+@@ -38,7 +39,7 @@ public:
+      * using 0.5, but there is no guarantee in this case.
+      */
+     ApproxBetweenness(const Graph &G, double epsilon = 0.01, double delta = 0.1,
+-                      double universalConstant = 1.0);
++                      double universalConstant = 1.0, int _K = 3);
+ 
+     /**
+      * Computes betweenness approximation on the graph passed in constructor.
+diff --git a/include/networkit/centrality/EstimateBetweenness.hpp b/include/networkit/centrality/EstimateBetweenness.hpp
+index d518dcf7a..9145ad686 100644
+--- a/include/networkit/centrality/EstimateBetweenness.hpp
++++ b/include/networkit/centrality/EstimateBetweenness.hpp
+@@ -21,7 +21,7 @@ namespace NetworKit {
+  * ApproxBetweenness.
+  */
+ class EstimateBetweenness : public Centrality {
+-
++	int __k_dist;
+ public:
+     /**
+      * The algorithm estimates the betweenness of all nodes, using weighting
+@@ -34,7 +34,7 @@ public:
+      * @param	parallel_flag	if true, run in parallel with additional memory cost z + 3z * t
+      */
+     EstimateBetweenness(const Graph &G, count nSamples, bool normalized = false,
+-                        bool parallel_flag = false);
++                        bool parallel_flag = false, int _K = 3);
+ 
+     /**
+      * Computes betweenness estimation on the graph passed in constructor.
+diff --git a/include/networkit/distance/BFS.hpp b/include/networkit/distance/BFS.hpp
+index 63eb965f2..9f97f05ff 100644
+--- a/include/networkit/distance/BFS.hpp
++++ b/include/networkit/distance/BFS.hpp
+@@ -18,7 +18,7 @@ namespace NetworKit {
+  * source node.
+  */
+ class BFS final : public SSSP {
+-
++	int __k_dist;
+ public:
+     /**
+      * Constructs the BFS class for @a G and source node @a source.
+@@ -32,7 +32,7 @@ public:
+      * @param target The target node.
+      */
+     BFS(const Graph &G, node source, bool storePaths = true,
+-        bool storeNodesSortedByDistance = false, node target = none);
++        bool storeNodesSortedByDistance = false, node target = none, int _K = 3);
+ 
+     /**
+      * Breadth-first search from @a source.
+diff --git a/networkit/centrality.pyx b/networkit/centrality.pyx
+index a3f1d63c0..3b215362a 100644
+--- a/networkit/centrality.pyx
++++ b/networkit/centrality.pyx
+@@ -5,6 +5,7 @@ from libc.stdint cimport uint8_t
+ from libcpp.vector cimport vector
+ from libcpp.utility cimport pair
+ from libcpp cimport bool as bool_t
++from libcpp cimport int
+ 
+ import math
+ 
+@@ -171,12 +172,12 @@ cdef class Betweenness(Centrality):
+ cdef extern from "<networkit/centrality/ApproxBetweenness.hpp>":
+ 
+ 	cdef cppclass _ApproxBetweenness "NetworKit::ApproxBetweenness" (_Centrality):
+-		_ApproxBetweenness(_Graph, double, double, double) except +
++		_ApproxBetweenness(_Graph, double, double, double, int) except +
+ 		count numberOfSamples() except +
+ 
+ cdef class ApproxBetweenness(Centrality):
+ 	"""
+- 	ApproxBetweenness(G, epsilon=0.01, delta=0.1, universalConstant=1.0)
++ 	ApproxBetweenness(G, epsilon=0.01, delta=0.1, universalConstant=1.0, _K=3)
+ 
+ 	Approximation of betweenness centrality according to algorithm described in Matteo Riondato 
+ 	and Evgenios M. Kornaropoulos: Fast Approximation of Betweenness Centrality through Sampling
+@@ -202,9 +203,9 @@ cdef class ApproxBetweenness(Centrality):
+ 		is no guarantee in this case.
+ 	"""
+ 
+-	def __cinit__(self, Graph G, epsilon=0.01, delta=0.1, universalConstant=1.0):
++	def __cinit__(self, Graph G, epsilon=0.01, delta=0.1, universalConstant=1.0, _K=3):
+ 		self._G = G
+-		self._this = new _ApproxBetweenness(G._this, epsilon, delta, universalConstant)
++		self._this = new _ApproxBetweenness(G._this, epsilon, delta, universalConstant, _K)
+ 
+ 	def numberOfSamples(self):
+ 		return (<_ApproxBetweenness*>(self._this)).numberOfSamples()
+@@ -213,11 +214,11 @@ cdef class ApproxBetweenness(Centrality):
+ cdef extern from "<networkit/centrality/EstimateBetweenness.hpp>":
+ 
+ 	cdef cppclass _EstimateBetweenness"NetworKit::EstimateBetweenness" (_Centrality):
+-		_EstimateBetweenness(_Graph, count, bool_t, bool_t) except +
++		_EstimateBetweenness(_Graph, count, bool_t, bool_t, int) except +
+ 
+ cdef class EstimateBetweenness(Centrality):
+ 	""" 
+-	EstimateBetweenness(G, nSamples, normalized=False, parallel=False)
++	EstimateBetweenness(G, nSamples, normalized=False, parallel=False, _K = 3)
+ 	
+ 	Estimation of betweenness centrality according to algorithm described in
+ 	Sanders, Geisberger, Schultes: Better Approximation of Betweenness Centrality
+@@ -240,9 +241,9 @@ cdef class EstimateBetweenness(Centrality):
+ 		Run in parallel with additional memory cost z + 3z * t
+ 	"""
+ 
+-	def __cinit__(self, Graph G, nSamples, normalized=False, parallel=False):
++	def __cinit__(self, Graph G, nSamples, normalized=False, parallel=False, _K = 3):
+ 		self._G = G
+-		self._this = new _EstimateBetweenness(G._this, nSamples, normalized, parallel)
++		self._this = new _EstimateBetweenness(G._this, nSamples, normalized, parallel, _K)
+ 
+ cdef extern from "<networkit/centrality/KadabraBetweenness.hpp>":
+ 
+diff --git a/networkit/cpp/centrality/ApproxBetweenness.cpp b/networkit/cpp/centrality/ApproxBetweenness.cpp
+index e4a13b473..9c7a9d573 100644
+--- a/networkit/cpp/centrality/ApproxBetweenness.cpp
++++ b/networkit/cpp/centrality/ApproxBetweenness.cpp
+@@ -23,8 +23,8 @@
+ namespace NetworKit {
+ 
+ ApproxBetweenness::ApproxBetweenness(const Graph &G, double epsilon, double delta,
+-                                     double universalConstant)
+-    : Centrality(G, true), epsilon(epsilon), delta(delta), universalConstant(universalConstant) {}
++                                     double universalConstant, int _K)
++	: Centrality(G, true), epsilon(epsilon), delta(delta), universalConstant(universalConstant), __k_dist(_K) {}
+ 
+ void ApproxBetweenness::run() {
+     Aux::SignalHandler handler;
+@@ -50,7 +50,7 @@ void ApproxBetweenness::run() {
+ #pragma omp parallel
+     {
+         auto ssspPtr = G.isWeighted() ? std::unique_ptr<SSSP>(new Dijkstra(G, 0, true, false))
+-                                      : std::unique_ptr<SSSP>(new BFS(G, 0, true, false));
++		: std::unique_ptr<SSSP>(new BFS(G, 0, true, false, __k_dist));
+ 
+ #pragma omp for
+         for (omp_index i = 1; i <= static_cast<omp_index>(r); i++) {
+diff --git a/networkit/cpp/centrality/EstimateBetweenness.cpp b/networkit/cpp/centrality/EstimateBetweenness.cpp
+index 1fe3d4ce4..cd9b798cd 100644
+--- a/networkit/cpp/centrality/EstimateBetweenness.cpp
++++ b/networkit/cpp/centrality/EstimateBetweenness.cpp
+@@ -19,8 +19,8 @@
+ namespace NetworKit {
+ 
+ EstimateBetweenness::EstimateBetweenness(const Graph &G, count nSamples, bool normalized,
+-                                         bool parallel_flag)
+-    : Centrality(G, normalized), nSamples(nSamples), parallel_flag(parallel_flag) {}
++                                         bool parallel_flag, int _K)
++	: Centrality(G, normalized), nSamples(nSamples), parallel_flag(parallel_flag), __k_dist(_K) {}
+ 
+ void EstimateBetweenness::run() {
+     hasRun = false;
+@@ -47,7 +47,7 @@ void EstimateBetweenness::run() {
+         if (G.isWeighted()) {
+             sssp = std::make_unique<Dijkstra>(G, s, true, true);
+         } else {
+-            sssp = std::make_unique<BFS>(G, s, true, true);
++		sssp = std::make_unique<BFS>(G, s, true, true, __k_dist);
+         }
+         if (!handler.isRunning())
+             return;
+diff --git a/networkit/cpp/distance/BFS.cpp b/networkit/cpp/distance/BFS.cpp
+index 3a6fd2334..68bcbf2b3 100644
+--- a/networkit/cpp/distance/BFS.cpp
++++ b/networkit/cpp/distance/BFS.cpp
+@@ -13,8 +13,8 @@
+ namespace NetworKit {
+ 
+ BFS::BFS(const Graph &G, node source, bool storePaths,
+-         bool storeNodesSortedByDistance, node target)
+-    : SSSP(G, source, storePaths, storeNodesSortedByDistance, target) {}
++         bool storeNodesSortedByDistance, node target, int _K)
++	: SSSP(G, source, storePaths, storeNodesSortedByDistance, target), __k_dist(_K) {}
+ 
+ void BFS::run() {
+     count z = G->upperNodeIdBound();
+@@ -59,8 +59,9 @@ void BFS::run() {
+         // insert untouched neighbors into queue
+         G->forNeighborsOf(u, [&](node v) {
+             if (distances[v] == infDist) {
+-                q.push(v);
+                 distances[v] = distances[u] + 1.;
++		if (distances[v] <= __k_dist)
++			q.push(v);
+                 sumDist += distances[v];
+                 ++reachedNodes;
+                 if (storePaths) {
+diff --git a/networkit/distance.pyx b/networkit/distance.pyx
+index 2443a7437..584022bd1 100644
+--- a/networkit/distance.pyx
++++ b/networkit/distance.pyx
+@@ -9,6 +9,7 @@ from libcpp cimport bool as bool_t
+ from libcpp.string cimport string
+ from libcpp.set cimport set
+ from libcpp.unordered_map cimport unordered_map
++from libcpp cimport int 
+ 
+ from .base cimport _Algorithm, Algorithm
+ from .dynamics cimport _GraphEvent
+@@ -1405,11 +1406,11 @@ cdef class DynAPSP(APSP):
+ cdef extern from "<networkit/distance/BFS.hpp>":
+ 
+ 	cdef cppclass _BFS "NetworKit::BFS"(_SSSP):
+-		_BFS(_Graph G, node source, bool_t storePaths, bool_t storeNodesSortedByDistance, node target) except +
++		_BFS(_Graph G, node source, bool_t storePaths, bool_t storeNodesSortedByDistance, node target, int _K) except +
+ 
+ cdef class BFS(SSSP):
+ 	""" 
+-	BFS(G, source, storePaths=True, storeNodesSortedByDistance=False, target=None)
++	BFS(G, source, storePaths=True, storeNodesSortedByDistance=False, target=None, _K=3)
+ 	
+ 	Simple breadth-first search on a Graph from a given source.
+ 
+@@ -1425,11 +1426,12 @@ cdef class BFS(SSSP):
+ 		Controls whether to store nodes sorted by distance.
+ 	target: int or None, optional
+ 		Terminate search when the target has been reached. In default-mode, this target is set to None.
++        _K: k distance
+ 	"""
+ 
+-	def __cinit__(self, Graph G, source, storePaths=True, storeNodesSortedByDistance=False, target=none):
++	def __cinit__(self, Graph G, source, storePaths=True, storeNodesSortedByDistance=False, target=none, _K=3):
+ 		self._G = G
+-		self._this = new _BFS(G._this, source, storePaths, storeNodesSortedByDistance, target)
++		self._this = new _BFS(G._this, source, storePaths, storeNodesSortedByDistance, target, _K)
+ 
+ cdef extern from "<networkit/distance/Dijkstra.hpp>":
+ 
+-- 
+2.17.1
+
