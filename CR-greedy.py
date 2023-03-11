@@ -7,7 +7,6 @@ Greedy Algorithm: sequentially removes CAs until meeting the constraint
 import networkit as nk
 from sys import stdin, stdout
 import sys
-import matplotlib.pyplot as plt
 import numpy as np
 import random as rd
 import math

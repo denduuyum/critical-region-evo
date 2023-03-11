@@ -8,7 +8,6 @@ A version of CA_ES_DCNP_FINAL after parameter tuning.
 import networkit as nk
 from sys import stdin, stdout
 import sys
-import matplotlib.pyplot as plt
 import numpy as np
 import random as rd
 import math
