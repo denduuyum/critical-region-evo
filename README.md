@@ -51,8 +51,49 @@ cd ..
 
 ## How to run
 
-Once networkit library is installed, we can run `cr-evo.py` with the following command.
+Once networkit library is installed, we can run `cr-evo.py` with the following options
 
 ```shell
+python3 CR-evo.py --help
+usage: CR-evo.py [-h] [-T TMAX] [-N NPOPULATION] [-n RUNS] -b BUDGET [-D DIST] [-c1 C1] [-i IDLE_MAX] [-c2 C2] file
+
+Betweenness separator.
+
+positional arguments:
+  file                  The file that contains graph information
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -T TMAX, --tmax TMAX  The run time of the algorithm
+  -N NPOPULATION, --npopulation NPOPULATION
+                        The run time of the algorithm
+  -n RUNS, --nruns RUNS
+                        Number of different runs
+  -b BUDGET, --budget BUDGET
+                        Number of nodes to delete
+  -D DIST, --dist DIST  Distance parameter
+  -c1 C1, --coef C1     Coefficient before chromosome length (CL) (dna size)
+  -i IDLE_MAX, --idle_max IDLE_MAX
+                        number of idles size
+  -c2 C2, --gscoef C2   Coefficient before gene size
+```
+
+`cr-greedy.py` can be run with the following options.
+
+```shell
+python3 CR-greedy.py --help
+usage: CR-greedy.py [-h] [-n NRUN] -b BUDGET [-D DIST] file
+
+Betweenness separator.
+
+positional arguments:
+  file                  The file that contains graph information
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NRUN, --nrun NRUN  The number of runs
+  -b BUDGET, --budget BUDGET
+                        Number of nodes to delete
+  -D DIST, --dist DIST  Distance parameter
 
 ```
