@@ -19,9 +19,9 @@ These requirements are taken from networkit repository. They are required to bui
       ```shell
 	  sudo apt install python3-dev
 	  ```
-  3. [Pip][https://pypi.python.org/pypi/pip]
+  3. [Pip](https://pypi.python.org/pypi/pip)
   4. Cmake 3.6 or higher.
-  5. Build system: [Make][https://www.gnu.org/software/make/]
+  5. Build system: [Make](https://www.gnu.org/software/make/)
   6. Cython version 0.29 or higher (e.g. `pip3 install cython`)
   7. Python3 venv module.
      On ubuntu, it can be install with the following command.
