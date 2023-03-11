@@ -1,15 +1,7 @@
 from queue import Queue
 import networkit as nk
-import networkx as nx
-import matplotlib.pyplot as plt
-#import matplotlib
-#matplotlib.use('TkAgg')
-from matplotlib.colors import LogNorm
 import copy
 import sys
-import ArticulationPoint as AP
-#print('Hi from graph tool')
-#exit()
 
 # It creates only ONE bfs tree (assuming G is a connected graph)
 # Returns:
@@ -150,39 +142,6 @@ def read_graph_mapped(fin):
     return G, id
 
 
-def nx_read_graph_mapped(fin):
-    n = int(fin.readline())
-    G = nx.Graph()
-    d = {}
-    id = 0
-    
-    # print("Number of nodes: ", n)
-    while True:
-        try:
-            line = fin.readline()
-        except:
-            break
-
-        line = line.split()
-        if len(line) == 0:
-            break
-
-        x = int(line[0][:-1])
-        if d.get(x) == None:
-            d[x] = id
-            id += 1
-        x = d[x]
-        arr = [int(y) for y in line[1:]]
-        for y in arr:
-            if d.get(y) == None:
-                d[y] = id
-                id += 1
-            yy = d[y]
-            G.add_edge(x, yy)
-
-    return G, id
-
-            
 def write_graph(G, n, fout):
     fout.write(str(G.numberOfNodes()) + '\n')
     for i in range(n):
@@ -332,117 +291,6 @@ def cumulative_bc(G, bc):
         new_bc[u] /= G.degree(u) + 1
     return new_bc
 
-
-def draw_graph(G, S = [], S2 = []):
-    # Convert the graph into networkx graph
-    Gx = nx.Graph()
-    for u in G.iterNodes():
-        Gx.add_node(u)
-
-    for e in G.iterEdges():
-        Gx.add_edge(e[0], e[1])
-
-    sizes = []
-    cols = []
-    for u in Gx:
-        if u in S:
-            cols.append('blue')
-            sizes.append(5)
-        elif u in S2:
-            cols.append('red')
-            sizes.append(20)
-        else:
-            cols.append('green')
-            sizes.append(5)
-        
-            
-    nx.draw(Gx, node_color=cols, node_size=sizes)
-    # nx.draw(Gx, node_color=cols, node_size=sizes, with_labels = True)
-    plt.show()
-
-
-
-def draw_highlight_top_bc(G, bc):
-    # Convert the graph into networkx graph
-    Gx = nx.Graph()
-    for u in G.iterNodes():
-        Gx.add_node(u)
-    for e in G.iterEdges():
-        Gx.add_edge(e[0], e[1])
-
-    sizes = []
-    cols = []
-    mx = max([bc[u] for u in Gx])
-    mn = min([bc[u] for u in Gx])
-    l = mx - mn
-    lg_norm = LogNorm()
-    log_data = lg_norm([bc[u] for u in Gx])
-    i = 0
-    for u in Gx:
-        cols.append((1, 1-log_data[i], 1-log_data[i], 1))
-        # cols.append((1, 0, 0, 1))
-        # cols.append((1, (bc[u] - mn) / l, (bc[u] - mn) / l, 1))
-        i += 1
-        sizes.append(50)
-    print(cols)
-    nx.draw(Gx, node_size=sizes, node_color = cols)
-    # nx.draw(Gx, node_size=sizes, s = 500, cmap=log_data)
-    plt.show()
-
-def avg(x, k = 3):
-    y = []
-    for i in range(k, len(x)):
-        y.append(sum(x[i - k: i])/k)
-    return y
-    
-def draw_2graph(x1, x2, y1, y2, z1, z2, fname = "filename.svg"):
-    plt.subplot('121')
-    xx1 = [i for i in range(1, len(x1) + 1)]
-    yy1 = [i for i in range(1, len(y1) + 1)]
-    zz1 = [i for i in range(1, len(z1) + 1)]
-    plt.plot(xx1, x1, 'o-', yy1, y1, 'x-', zz1, z1, '+-')
-    plt.subplot('122')
-    xx2 = [i for i in range(1, len(x2) + 1)]
-    yy2 = [i for i in range(1, len(y2) + 1)]
-    zz2 = [i for i in range(1, len(z2) + 1)]
-    plt.plot(xx2, x2, 'o-', yy2, y2, 'x-', zz2, z2, '+-')
-    plt.savefig(fname)
-    
-
-class DrawGraph:
-
-    def __init__(self, G):
-        self.G = nx.Graph()
-        for u in G.iterNodes():
-            self.G.add_node(u)
-
-        for e in G.iterEdges():
-            self.G.add_edge(e[0], e[1])
-
-        self.pos = nx.spring_layout(self.G)
-
-    def remove_nodes(self, S):
-        for u in S:
-            if self.G.has_node(u):
-                self.G.remove_node(u)
-
-    def draw(self, S):
-        # Convert the graph into networkx graph
-        sizes = []
-        cols = []
-        pos = {}
-        for u in self.G:
-            pos[u] = self.pos[u]
-            if u in S:
-                cols.append('red')
-                sizes.append(2)
-            else:
-                cols.append('black')
-                sizes.append(1)
-            
-        nx.draw(self.G, pos = pos, node_color=cols, node_size=sizes)
-        plt.show()
-
 def cumulative_bc(G, bc):
     new_bc = {}
     for u in G.iterNodes():
@@ -455,25 +303,3 @@ def cumulative_bc(G, bc):
 
     return new_bc
 
-
-def get_core(G):
-    deleted_aps = []
-    while True:
-        ap = AP.ArticulationPoint()
-        aps = ap.AP(nk.components.ConnectedComponents.extractLargestConnectedComponent(G))
-        deleted_aps += aps
-        if len(aps) == 0:
-            break
-        for u in aps:
-            G.removeNode(u)
-
-    return deleted_aps
-    
-def get_ap(G):
-    ap = AP.ArticulationPoint()
-    aps = ap.AP(nk.components.ConnectedComponents.extractLargestConnectedComponent(G))
-    for u in aps:
-        G.removeNode(u)
-
-    return aps
-    
